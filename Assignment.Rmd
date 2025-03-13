@@ -1,0 +1,219 @@
+---
+title: "Assignment linear regression"
+author: "prerana"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+We aim to predict the Median Value of Owner-Occupied Homes (medv) based on socioeconomic factors, particularly the percentage of lower-status population (lstat). This analysis will help us understand the relationship between housing prices and socioeconomic factors, which can be valuable for urban planning and real estate investment decisions
+
+Data Loading and Exploration We begin by loading the dataset and summarizing its contents.
+
+# Load the Boston dataset
+
+data(Boston)
+
+# Display basic summary statistics
+
+summary(Boston)
+
+```{r}
+# Load the Boston dataset
+data(Boston)
+
+# Display basic summary statistics
+summary(Boston)
+
+
+
+
+```
+
+**Interpretation:** The summary provides an overview of the distribution of each variable, including minimum, maximum, median, and mean values.
+
+### **Checking for Missing Values**
+
+```{r}
+# Identify missing values
+missing_values <- Boston %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+print(missing_values)
+```
+
+**Interpretation:** If any missing values are detected, we need to decide on a handling method, such as removing rows or imputing missing values.
+
+## **Train-Test Split**
+
+Splitting the dataset into training and testing sets allows us to evaluate model performance on unseen data
+
+```{r}
+set.seed(123) # Ensures reproducibility
+
+# Assign a unique ID to each row
+Boston <- Boston %>% mutate(id = row_number())
+
+# Randomly select 75% of the data for training
+train_data <- Boston %>% sample_frac(0.75)
+test_data <- anti_join(Boston, train_data, by = "id") # Remaining 25% for testing
+
+```
+
+**Why is this important?** This ensures our model generalizes well and avoids overfitting.
+
+## **Exploratory Data Analysis**
+
+We visualize our key variables to understand their distributions and relationships.
+
+### **Distribution of Median Home Values**
+
+```{r}
+ggplot(Boston, aes(x = medv)) +
+  geom_histogram(fill = "steelblue", binwidth = 2, color = "white") +
+  labs(title = "Distribution of Median Home Values",
+       x = "Median Value ($1000s)", y = "Count")
+
+
+```
+
+```         
+
+
+
+```
+
+**Insight:** This shows the spread of home values and helps detect skewness.
+
+### **Relationship Between `lstat` and `medv`**
+
+```{r}
+ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point(alpha = 0.6, color = 'blue') +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Scatterplot: LSTAT vs. MEDV",
+       x = "Lower Status Population (%)",
+       y = "Median Home Value ($1000s)")
+
+```
+
+**Insight:** This plot shows a negative correlation—higher `lstat` values tend to correspond to lower `medv` values.
+
+## **Model Implementation & Explanation**
+
+### **Simple Linear Regression**
+
+We fit a simple linear regression model using `lstat` as the predictor.
+
+```{r}
+lm.fit <- lm(medv ~ lstat, data = train_data)
+summary(lm.fit)
+
+```
+
+**Interpretation:** The **coefficient for `lstat`** tells us how much `medv` changes per unit increase in `lstat`.
+
+The **R² value** indicates how well `lstat` explains the variance in `medv`.
+
+The **p-value** assesses statistical significance.
+
+### **Model Performance Evaluation**
+
+We evaluate the model using Mean Squared Error (MSE) on both the training and test sets.
+
+```{r}
+train_mse <- mean((train_data$medv - predict(lm.fit, train_data))^2)
+test_mse <- mean((test_data$medv - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+
+```
+
+**Insight:**
+
+**Lower MSE values** indicate better predictive performance.
+
+**Compare training vs. test MSE** to check for overfitting.
+
+## **Multiple Linear Regression**
+
+We extend the model by including `age` as an additional predictor.
+
+```{r}
+lm.multiple.fit <- lm(medv ~ lstat + age, data = train_data)
+summary(lm.multiple.fit)
+
+```
+
+**What does this tell us?**
+
+Adding `age` may improve the model's predictive power.
+
+Check if `age` is a significant predictor.
+
+**NHANES Data Analysis**
+
+## **Objective**
+
+We aim to predict **BMI** using **Age, Smoking Status (`SmokeNow`), and Physical Activity (`PhysActive`)** for individuals aged **18–70**.
+
+## **Data Understanding & Preparation**
+
+### **Data Loading**
+
+```{r}
+library(NHANES)
+data(NHANES)
+
+SMOKERS <- NHANES %>%
+  select(BMI, Age, SmokeNow, PhysActive) %>%
+  filter(Age >= 18 & Age <= 70)
+```
+
+**Insight:** The dataset contains key health-related variables, enabling us to study BMI determinants.
+
+### Train-Test Split
+
+```{r}
+set.seed(123)
+
+SMOKERS <- SMOKERS %>% mutate(id = row_number())
+
+train_data <- SMOKERS %>% sample_frac(0.75)
+test_data <- anti_join(SMOKERS, train_data, by = "id")
+```
+
+## **Exploratory Data Analysis**
+
+### **Distribution of BMI**
+
+```{r}
+ggplot(SMOKERS, aes(x = BMI)) +
+  geom_histogram(fill = "steelblue", binwidth = 5, color = "white") +
+  labs(title = "Distribution of BMI", x = "BMI", y = "Count")
+```
+
+**Insight:** Helps identify skewness and possible outliers.
+
+### **Scatterplot: Age vs. BMI**
+
+```{r}
+ggplot(SMOKERS, aes(x = Age, y = BMI)) +
+  geom_point(alpha = 0.6, color = 'blue') +
+  labs(title = "Scatterplot: Age vs. BMI", x = "Age", y = "BMI")
+```
+
+## **Model Implementation**
+
+### **Simple Linear Regression**
+
+```{r}
+lm.fit <- lm(BMI ~ Age, data = train_data)
+summary(lm.fit)
+```
+
+Multiple linear regression
+
+```{r}
+lm.multiple.fit <- lm(BMI ~ Age + SmokeNow + PhysActive, data = train_data)
+summary(lm.multiple.fit)
+```
